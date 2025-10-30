@@ -4,11 +4,10 @@ composer require phpstan/phpstan --dev
 composer require larastan/larastan --dev
 
 
-creer en suite le fichier de configuration 
-
+# creer en suite le fichier de configuration 
 touch phpstan.neon
 
----------contenue de neon-------------------
+# ---------contenue de neon-------------------------------------------------------
 includes:
     - vendor/larastan/larastan/extension.neon
 
@@ -22,13 +21,66 @@ parameters:
 ./vendor/bin/phpunit    
 
 
------------------------
+# ---------------------------------------------------------------------------------
 # Create workflow file
-
 mkdir -p .github/workflows && touch .github/workflows/main.yml
 
+# ------------contenue de main.yml------------------------------------------------
+# 🧱 Nom du workflow (il apparaîtra dans l'onglet "Actions" de ton dépôt GitHub)
+name: Build, test and deploy
 
---------------------
+# 🚀 Déclencheur du workflow : il s'exécutera à chaque push sur la branche "main"
+on:
+  push:
+    branches: [main]
+
+# ⚙️ Définition des différents "jobs" (tâches principales)
+jobs:
+  build:
+    # 🖥️ Spécifie sur quel système d’exploitation exécuter le job (ici Ubuntu)
+    runs-on: ubuntu-latest
+
+    # 📋 Liste des étapes à exécuter dans ce job
+    steps:
+      # 🧩 Étape 1 : Cloner ton dépôt GitHub dans la machine virtuelle
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 🧰 Étape 2 : Installer PHP dans l’environnement
+      # "shivammathur/setup-php@v2" est une action publique qui configure PHP
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3 # 👉 version de PHP que tu veux utiliser
+
+      # 💾 Étape 3 : Créer une base de données SQLite vide pour les tests
+      - name: Create database
+        run: touch ./database/database.sqlite
+
+      # ⚙️ Étape 4 : Copier le fichier d’environnement de test (.env.test → .env)
+      # Cela permet de définir les variables nécessaires à Laravel (base de données, etc.)
+      - name: Copy .env
+        run: cp .env.test .env
+
+      # 📦 Étape 5 : Installer toutes les dépendances PHP (Composer)
+      - name: Install app
+        run: composer install
+
+      # 🧱 Étape 6 : Lancer les migrations Laravel pour préparer la base de données
+      - name: Run migrations
+        run: php artisan migrate
+
+      # 🔍 Étape 7 : Vérifier la qualité du code avec PHPStan (analyse statique)
+      - name: Test PHPStan
+        run: ./vendor/bin/phpstan analyse
+
+      # 🧪 Étape 8 : Exécuter les tests unitaires avec PHPUnit
+      - name: Test PHPUnit
+        run: ./vendor/bin/phpunit
+
+
+
+# ----------------------------------------------------------------------------------------------
 créer un ficher d'environnement
 
 
